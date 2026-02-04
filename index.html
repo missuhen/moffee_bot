@@ -10,6 +10,9 @@
       background: #f7f5f2;
       padding: 16px;
     }
+    h2 {
+      margin-top: 24px;
+    }
     .card {
       background: #fff;
       padding: 16px;
@@ -24,6 +27,14 @@
       background: #6b4f3f;
       color: #fff;
       font-size: 16px;
+      margin-top: 10px;
+    }
+    .secondary {
+      background: #b89b8c;
+    }
+    .item {
+      font-size: 14px;
+      margin-bottom: 6px;
     }
   </style>
 </head>
@@ -35,21 +46,84 @@
   <p><b>Объём</b></p>
   <label><input type="radio" name="size" value="200"> 200 мл</label><br>
   <label><input type="radio" name="size" value="300"> 300 мл</label>
+
+  <p style="margin-top:10px"><b>Молоко</b></p>
+  <label><input type="checkbox" value="Овсяное"> Овсяное</label><br>
+  <label><input type="checkbox" value="Миндальное"> Миндальное</label>
+
+  <button onclick="addToCart('Капучино')">Добавить в корзину</button>
 </div>
 
-<div class="card">
-  <p><b>Молоко</b></p>
-  <label><input type="checkbox"> Овсяное</label><br>
-  <label><input type="checkbox"> Миндальное</label>
-</div>
+<h2>🛒 Корзина</h2>
+<div class="card" id="cart"></div>
 
-<button onclick="sendOrder()">Добавить в корзину</button>
+<button class="secondary" onclick="checkout()">Оформить заказ</button>
 
 <script>
-  function sendOrder() {
-    Telegram.WebApp.sendData("Капучино добавлен");
+  Telegram.WebApp.ready();
+
+  let cart = JSON.parse(localStorage.getItem('cart')) || [];
+
+  function addToCart(name) {
+    const size = document.querySelector('input[name="size"]:checked');
+    if (!size) {
+      alert('Выберите объём');
+      return;
+    }
+
+    const milk = [];
+    document.querySelectorAll('input[type="checkbox"]:checked').forEach(el => {
+      milk.push(el.value);
+    });
+
+    const item = {
+      name: name,
+      size: size.value,
+      milk: milk
+    };
+
+    cart.push(item);
+    localStorage.setItem('cart', JSON.stringify(cart));
+    renderCart();
+    alert('Добавлено в корзину');
+  }
+
+  function renderCart() {
+    const cartDiv = document.getElementById('cart');
+    cartDiv.innerHTML = '';
+
+    if (cart.length === 0) {
+      cartDiv.innerHTML = '<p>Корзина пуста</p>';
+      return;
+    }
+
+    cart.forEach((item, index) => {
+      const div = document.createElement('div');
+      div.className = 'item';
+      div.textContent = `${index + 1}. ${item.name}, ${item.size} мл${item.milk.length ? ', ' + item.milk.join(', ') : ''}`;
+      cartDiv.appendChild(div);
+    });
+  }
+
+  function checkout() {
+    if (cart.length === 0) {
+      alert('Корзина пуста');
+      return;
+    }
+
+    let text = '☕️ Новый заказ:\n\n';
+    cart.forEach((item, i) => {
+      text += `${i + 1}. ${item.name}, ${item.size} мл`;
+      if (item.milk.length) text += ` (${item.milk.join(', ')})`;
+      text += '\n';
+    });
+
+    Telegram.WebApp.sendData(text);
+    localStorage.removeItem('cart');
     Telegram.WebApp.close();
   }
+
+  renderCart();
 </script>
 
 </body>
